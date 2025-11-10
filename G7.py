@@ -452,6 +452,19 @@ try:
     print(f"Total de amostras válidas coletadas: {total_amostras}")
     print("-------------------------------------------\n")
 
+    if total_amostras > 0:
+        # Salva os dados brutos em um arquivo de texto
+        i = 1
+        while os.path.exists(f"coleta_bruta_{i}.csv"):
+            i += 1
+        nome_arquivo_bruto = f"coleta_bruta_{i}.csv"
+        
+        try:
+            np.savetxt(nome_arquivo_bruto, dados_coletados, delimiter=",")
+            print(f"DADOS BRUTOS SALVOS EM: {nome_arquivo_bruto}")
+        except Exception as e:
+            print(f"Erro ao salvar dados brutos: {e}")
+            
     # #################################################
     # <<< CHAMADA PARA AMBAS AS ANÁLISES >>>
     # #################################################
@@ -531,4 +544,5 @@ except socket.error as e:
     print(f"Erro de Socket: {e}")
     print(f"Verifique se o IP/Porta estão corretos e se o Firewall não está bloqueando a porta {HOST_PORT}.")
 except Exception as e:
+
     print(f"Ocorreu um erro inesperado: {e}")
