@@ -5,13 +5,12 @@ import matplotlib.pyplot as plt
 
 # --- Importar as funções de análise do seu outro arquivo ---
 # IMPORTANTE: O Streamlit precisa que seu arquivo G7.py esteja no repositório.
-# Vamos assumir que o arquivo se chama G7.py
 try:
     # Importa as funções e constantes que o app VAI USAR
     from G7 import (
         processar_dados_marcha, 
         processar_dados_semg, 
-        gerar_relatorio_combinado,
+        # Não precisamos mais da 'gerar_relatorio_combinado' original
         REGRAS_MARCHA, 
         REGRAS_SEMG
     )
@@ -88,25 +87,13 @@ if st.button("Processar e Gerar Relatório"):
             st.success("Análise de dados concluída! Gerando relatório visual...")
 
             # --- Geração do Gráfico ---
-            # ATENÇÃO: A função 'gerar_relatorio_combinado' do seu G7.py 
-            # salva um arquivo (plt.savefig). Precisamos que ela plote no Streamlit.
             
-            # Vamos "enganar" ela para não salvar, mas sim nos dar a figura.
-            # Iremos criar a figura aqui e passá-la para a função.
-            
-            # Recriamos a figura aqui
+            # Criamos a figura para o Streamlit
             fig, (ax_report, ax_boxplot, ax_semg) = plt.subplots(
                 3, 1, 
                 figsize=(12, 18), 
                 gridspec_kw={'height_ratios': [2, 2, 3]}
             )
-            
-            # Chamamos sua função, mas ela NÃO VAI salvar o arquivo
-            # (pois não passamos o nome do arquivo)
-            # Ela apenas vai "desenhar" na 'fig' que criamos.
-            
-            # Esta parte é uma RE-IMPLEMENTAÇÃO da sua função de plotagem.
-            # É mais seguro refazê-la aqui.
             
             # --- Plot 1: Texto ---
             (m_apoio, s_apoio, m_balanco, s_balanco, cadencia, assimetria, estabilidade) = (
@@ -117,36 +104,60 @@ if st.button("Processar e Gerar Relatório"):
             )
             
             ax_report.set_title("1. Relatório de Análise da Marcha (IMU)", fontsize=18, weight='bold')
-            y_pos = 0.85; x_label = 0.05; x_valor = 0.45; x_interp = 0.7
-            
-            def plot_metrica(ax, label, valor_str, interp_str, cor='black'):
-                nonlocal y_pos
-                ax.text(x_label, y_pos, label, ha='left', va='center', fontsize=14, weight='bold')
-                ax.text(x_valor, y_pos, valor_str, ha='left', va='center', fontsize=14)
-                ax.text(x_interp, y_pos, interp_str, ha='left', va='center', fontsize=12, color=cor, style='italic')
-                y_pos -= 0.15 
 
+            # --- [INÍCIO DA CORREÇÃO] ---
+            
+            # Define as posições X
+            x_label = 0.05; x_valor = 0.45; x_interp = 0.7
+            
+            # FUNÇÃO DE PLOT CORRIGIDA
+            # Removemos 'nonlocal' e passamos 'current_y_pos' como argumento
+            def plot_metrica(ax, label, valor_str, interp_str, cor='black', current_y_pos=0.85):
+                ax.text(x_label, current_y_pos, label, ha='left', va='center', fontsize=14, weight='bold')
+                ax.text(x_valor, current_y_pos, valor_str, ha='left', va='center', fontsize=14)
+                ax.text(x_interp, current_y_pos, interp_str, ha='left', va='center', fontsize=12, color=cor, style='italic')
+                # Retorna a próxima posição Y
+                return current_y_pos - 0.15 
+
+            # CHAMADAS CORRIGIDAS
+            # Começamos com a posição Y inicial
+            y_pos_atual = 0.85 
+            
             val_str = f"{cadencia:.1f} p/min" if not np.isnan(cadencia) else "N/A"
-            interp, cor = ("Marcha saudável", "green") if 100 <= cadencia <= 120 else (("Marcha lenta", "orange") if 60 <= cadencia < 100 else ("Marcha atípica", "red"))
-            plot_metrica(ax_report, "Cadência:", val_str, interp, cor)
+            interp, cor = ("Marcha saudável", "green") if (not np.isnan(cadencia) and 100 <= cadencia <= 120) else (("Marcha lenta", "orange") if (not np.isnan(cadencia) and 60 <= cadencia < 100) else ("Marcha atípica", "red"))
+            # Atualizamos 'y_pos_atual' com o retorno da função
+            y_pos_atual = plot_metrica(ax_report, "Cadência:", val_str, interp, cor, current_y_pos=y_pos_atual)
 
             val_str = f"{m_apoio:.2f} s (± {s_apoio:.2f} s)" if not np.isnan(m_apoio) else "N/A"
-            plot_metrica(ax_report, "Tempo de Apoio:", val_str, "", "black")
+            y_pos_atual = plot_metrica(ax_report, "Tempo de Apoio:", val_str, "", "black", current_y_pos=y_pos_atual)
 
             val_str = f"{m_balanco:.2f} s (± {s_balanco:.2f} s)" if not np.isnan(m_balanco) else "N/A"
-            plot_metrica(ax_report, "Tempo de Balanço:", val_str, "", "black")
+            y_pos_atual = plot_metrica(ax_report, "Tempo de Balanço:", val_str, "", "black", current_y_pos=y_pos_atual)
             
-            # ... (adicionar o resto das métricas se quiser) ...
+            # --- [FIM DA CORREÇÃO] ---
+            
             ax_report.set_xticks([]); ax_report.set_yticks([]); ax_report.axis('off')
 
 
             # --- Plot 2: Boxplot ---
             ax_boxplot.set_title('2. Variabilidade dos Tempos de Passo (MARCHA)', fontsize=16)
-            # ... (código do boxplot do G7.py) ...
-            data_to_plot = [metricas_marcha['tempos_contato'], metricas_marcha['tempos_balanco']]
-            labels = ['Apoio', 'Balanço']
-            ax_boxplot.boxplot(data_to_plot, labels=labels, patch_artist=True, showmeans=True)
-            ax_boxplot.set_ylabel('Duração (segundos)')
+            t_apoio = metricas_marcha['tempos_contato']
+            t_balanco = metricas_marcha['tempos_balanco']
+            data_to_plot = []
+            labels = []
+            
+            if len(t_apoio) > 1:
+                data_to_plot.append(t_apoio)
+                labels.append(f'Apoio (n={len(t_apoio)})') 
+            if len(t_balanco) > 1:
+                data_to_plot.append(t_balanco)
+                labels.append(f'Balanço (n={len(t_balanco)})')
+            
+            if data_to_plot:
+                ax_boxplot.boxplot(data_to_plot, labels=labels, patch_artist=True, showmeans=True)
+                ax_boxplot.set_ylabel('Duração (segundos)')
+            else:
+                 ax_boxplot.text(0.5, 0.5, "N/A (Passos insuficientes)", ha='center', va='center')
 
 
             # --- Plot 3: sEMG ---
@@ -155,6 +166,7 @@ if st.button("Processar e Gerar Relatório"):
             ax_semg.plot(tempo, semg_filtrado, color='darkorange', linewidth=0.8)
             ax_semg.set_xlabel('Tempo [s]'); ax_semg.set_ylabel('Amplitude [u.a.]')
             ax_semg.grid(True)
+            ax_semg.set_xlim(left=0, right=max(tempo, default=1))
 
             # --- Mostrar no Streamlit ---
             plt.tight_layout()
