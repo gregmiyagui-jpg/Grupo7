@@ -23,10 +23,10 @@ REGRAS_SEMG = {
     'order': 4
 }
 NOMES_PARAMETROS_SEMG = {
-    'RMS': 'Força (RMS)', 
-    'MAV': 'Ativação (MAV)', 
-    'LOG': 'Índice (LOG)',
-    'WL':  'Comp. Onda (WL)', 
+    'RMS': 'Constância da força de contração (RMS)', 
+    'MAV': 'Média da amplitude absoluta (MAV)', 
+    'LOG': 'Intensidade da força de contração (LOG)',
+    'WL':  'Complexidade do sinal (WL)', 
     'MNF': 'Freq. Média (MNF)', 
     'MDF': 'Freq. Mediana (MDF)'
 }
@@ -285,23 +285,63 @@ def gerar_relatorio_para_streamlit(metricas, params_semg, sinal_semg_filtrado, f
     return fig
 
 def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
-    # (Mesma função de antes, sem alterações)
+    """
+    Gera gráfico de evolução com faixas normativas (Bands).
+    """
+    # Prepara dados
     df_hist['DATA_OBJ'] = pd.to_datetime(df_hist['DATA_HORA'])
     df_hist = df_hist.sort_values('DATA_OBJ')
     datas = df_hist['DATA_OBJ'].dt.strftime('%d/%m %H:%M')
+    
+    # Cria figura
     fig, axs = plt.subplots(3, 1, figsize=(12, 18), facecolor=cor_fundo)
     fig.patch.set_facecolor(cor_fundo)
-    fig.suptitle(f"Evolução Clínica ({len(df_hist)} Sessões)", fontsize=22, weight='bold', color=cor_texto)
+    fig.suptitle(f"Evolução Clínica e Faixas de Normalidade", fontsize=22, weight='bold', color=cor_texto)
     
+    # Função auxiliar de estilo
     def sty(ax, t, yl):
-        ax.set_facecolor(cor_fundo); ax.set_title(t, color=cor_texto); ax.set_ylabel(yl, color=cor_texto)
-        ax.tick_params(colors=cor_texto, rotation=45); ax.grid(True, alpha=0.3)
+        ax.set_facecolor(cor_fundo)
+        ax.set_title(t, color=cor_texto, fontsize=14, weight='bold')
+        ax.set_ylabel(yl, color=cor_texto, fontsize=12)
+        ax.tick_params(colors=cor_texto, rotation=45)
+        # Grid mais leve para não brigar com as faixas
+        ax.grid(True, alpha=0.15, linestyle=':', color=cor_texto)
         for s in ax.spines.values(): s.set_color(cor_texto)
 
-    axs[0].plot(datas, df_hist['CADENCIA'], 'o-', color='#00FFC8', lw=2, label='Cadência'); sty(axs[0], "Cadência", "ppm")
-    axs[1].plot(datas, df_hist['MEDIA_APOIO'], 's-', color='#0056B3', label='Apoio'); sty(axs[1], "Tempos de Ciclo", "s")
-    axs[1].plot(datas, df_hist['MEDIA_BALANCO'], '^-', color='#D9534F', label='Balanço'); axs[1].legend()
-    axs[2].plot(datas, df_hist['RMS'], 'o-', color='#D500F9', lw=2, label='Força (RMS)'); sty(axs[2], "Força Muscular", "u.a.")
+    # --- 1. GRÁFICO DE CADÊNCIA ---
+    ax = axs[0]
+    # Faixas Normativas (Winter, 1991)
+    ax.axhspan(100, 120, color='green', alpha=0.15, label='Normal (100-120)') # Zona Ideal
+    ax.axhspan(80, 100, color='yellow', alpha=0.10, label='Funcional (80-100)') # Zona Funcional
+    ax.axhspan(60, 80, color='orange', alpha=0.10, label='Atenção (60-80)')
+    ax.axhspan(0, 60, color='red', alpha=0.10, label='Risco (<60)') # Zona de Risco
+    
+    ax.plot(datas, df_hist['CADENCIA'], 'o-', color='#00FFC8', lw=2.5, label='Paciente')
+    sty(ax, "Cadência (Ritmo)", "Passos/min")
+    ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
+
+    # --- 2. GRÁFICO DE APOIO (% DO CICLO) ---
+    ax = axs[1]
+    # Faixas Normativas (Perry, 2010) - 60% a 62% é o ouro, aceita-se 58-64%
+    ax.axhspan(52, 65, color='green', alpha=0.15, label='Normal/Funcional (52-65%)') 
+    ax.axhspan(65, 72, color='yellow', alpha=0.10, label='Atenção') 
+    ax.axhspan(45, 52, color='yellow', alpha=0.10)
+    
+    val_apoio = df_hist['PCT_APOIO']
+    ax.plot(datas, val_apoio, 's-', color='#0056B3', lw=2.5, label='% Apoio')
+    
+    # Linha de Ouro (60%)
+    ax.axhline(y=60, color=cor_texto, linestyle='--', alpha=0.5, lw=1)
+    
+    sty(ax, "% do Ciclo em Apoio", "% do Ciclo")
+    ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
+    
+    # --- 3. GRÁFICO DE RMS (EFICIÊNCIA) ---
+    ax = axs[2]
+   
+    ax.plot(datas, df_hist['RMS'], 'o-', color='#D500F9', lw=2.5, label='RMS Paciente')
+    sty(ax, "Ativação Média (RMS)", "Amplitude (0-1)")
+    ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
     
     plt.tight_layout()
     return fig
