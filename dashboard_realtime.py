@@ -378,12 +378,12 @@ elif st.session_state.current_view == 'HOME':
                 st.markdown("#### Gerenciamento de Dados:")
                 
                 df_editado = st.data_editor(
-                    df_hist_display[['DATA_HORA', 'CADENCIA', 'RMS', 'MDF', 'DURACAO_S']],
+                    df_hist_display[['DATA_HORA', 'CADENCIA', 'PCT_APOIO', 'RMS', 'MDF']],
                     key="tabela_historico_editor",
                     hide_index=True,
                     use_container_width=True,
                     num_rows="dynamic",
-                    column_order=('DATA_HORA', 'CADENCIA', 'RMS', 'MDF', 'DURACAO_S')
+                    column_order=('DATA_HORA', 'CADENCIA', 'PCT_APOIO', 'RMS', 'MDF')
                 )
 
                 # LÓGICA DE EXCLUSÃO
