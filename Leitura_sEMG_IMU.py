@@ -294,7 +294,7 @@ def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
     datas = df_hist['DATA_OBJ'].dt.strftime('%d/%m %H:%M')
     
     # Cria figura
-    fig, axs = plt.subplots(3, 1, figsize=(12, 18), facecolor=cor_fundo)
+    fig, axs = plt.subplots(4, 1, figsize=(12, 18), facecolor=cor_fundo)
     fig.patch.set_facecolor(cor_fundo)
     fig.suptitle(f"Evolução Clínica e Faixas de Normalidade", fontsize=22, weight='bold', color=cor_texto)
     
@@ -303,6 +303,7 @@ def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
         ax.set_facecolor(cor_fundo)
         ax.set_title(t, color=cor_texto, fontsize=14, weight='bold')
         ax.set_ylabel(yl, color=cor_texto, fontsize=12)
+        ax.set_xlabel("")
         ax.tick_params(colors=cor_texto, rotation=45)
         # Grid mais leve para não brigar com as faixas
         ax.grid(True, alpha=0.15, linestyle=':', color=cor_texto)
@@ -316,8 +317,9 @@ def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
     ax.axhspan(60, 80, color='orange', alpha=0.10, label='Atenção (60-80)')
     ax.axhspan(0, 60, color='red', alpha=0.10, label='Risco (<60)') # Zona de Risco
     
-    ax.plot(datas, df_hist['CADENCIA'], 'o-', color='#00FFC8', lw=2.5, label='Paciente')
+    ax.plot(datas, df_hist['CADENCIA'], 'o-', color="#00FF11", lw=2.5, label='Paciente')
     sty(ax, "Cadência (Ritmo)", "Passos/min")
+    ax.set_xticks([])
     ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
 
     # --- 2. GRÁFICO DE APOIO (% DO CICLO) ---
@@ -328,12 +330,13 @@ def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
     ax.axhspan(45, 52, color='yellow', alpha=0.10)
     
     val_apoio = df_hist['PCT_APOIO']
-    ax.plot(datas, val_apoio, 's-', color='#0056B3', lw=2.5, label='% Apoio')
+    ax.plot(datas, val_apoio, 's-', color="#007BFF", lw=2.5, label='% Apoio')
     
     # Linha de Ouro (60%)
     ax.axhline(y=60, color=cor_texto, linestyle='--', alpha=0.5, lw=1)
     
     sty(ax, "% do Ciclo em Apoio", "% do Ciclo")
+    ax.set_xticks([])
     ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
     
     # --- 3. GRÁFICO DE RMS (EFICIÊNCIA) ---
@@ -341,6 +344,16 @@ def gerar_grafico_evolucao(df_hist, cor_fundo, cor_texto, cor_eixos):
    
     ax.plot(datas, df_hist['RMS'], 'o-', color='#D500F9', lw=2.5, label='RMS Paciente')
     sty(ax, "Ativação Média (RMS)", "Amplitude (0-1)")
+    ax.set_xticks([])
+    ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
+    
+    ax = axs[3]
+   
+    ax.plot(datas, df_hist['MDF'], 'o-', color="#F9EC00", lw=2.5, label='MDF')
+    ax.axhline(y=60, color=cor_texto, linestyle='--', alpha=0.5, lw=1)
+    
+    sty(ax, "MDF", "MDF")
+    ax.set_xticks([])
     ax.legend(facecolor=cor_fundo, labelcolor=cor_texto, loc='upper left', fontsize='small')
     
     plt.tight_layout()
