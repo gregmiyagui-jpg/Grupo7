@@ -33,7 +33,7 @@ UDP_IP = "0.0.0.0";
 UDP_PORT = 4210; 
 DURACAO_COLETA = 15; 
 COLUNAS_ESPERADAS = 7
-LOGO_PATH = "neurostep_logo.png"
+LOGO_PATH = "neurostep_logo_escuro.png"
 
 def carregar_pacientes():
     if os.path.exists(ARQUIVO_PACIENTES): return pd.read_csv(ARQUIVO_PACIENTES)
@@ -195,19 +195,33 @@ def navigate_history():
     st.session_state.current_view = 'HOME'
     st.rerun()
 
-# --- 1. LOGO GRANDE NO TOPO (Centralizado) ---
-cor_titulo = "#FFFFFF" if eh_dark else "#333333"
+# 1. Definição dos Caminhos das Imagens
+LOGO_CLARO = "neurostep_logo_claro.png"
+LOGO_ESCURO = "neurostep_logo_escuro.png"
 
+# 2. Lógica de Seleção do Logo baseada no Tema Atual
+# Se estiver no modo escuro, usa o logo escuro (geralmente branco/claro para contraste)
+# Se estiver no modo claro, usa o logo claro (geralmente escuro para contraste)
+if st.session_state.is_dark_mode:
+    logo_atual = LOGO_ESCURO
+    cor_titulo = "#FFFFFF" # Texto branco no fundo escuro
+else:
+    logo_atual = LOGO_CLARO
+    cor_titulo = "#333333" # Texto preto no fundo claro
+
+# 3. Renderização
 col_logo_main, col_spacer_r = st.columns([2, 1])
 with col_logo_main:
-    if os.path.exists(LOGO_PATH):
+    # Verifica se o arquivo da imagem existe antes de tentar mostrar
+    if os.path.exists(logo_atual):
         st.markdown('<div class="main-image-container">', unsafe_allow_html=True)
-        st.image(LOGO_PATH, width=450)
+        st.image(logo_atual, width=450)
         st.markdown('</div>', unsafe_allow_html=True) 
     else:
+        # Fallback caso a imagem não seja encontrada
         st.markdown(f"<h1 style='text-align: center; color: {cor_titulo} !important;'>🧬 NeuroStep</h1>", unsafe_allow_html=True)
 
-# 2. Título da Página
+# Título Principal (Ajusta a cor conforme o tema também)
 st.markdown(
     f"""
     <h1 style='text-align: center; color: {cor_titulo} !important; margin-top: 10px; font-size: 30px;'> 
@@ -216,7 +230,7 @@ st.markdown(
     """,
     unsafe_allow_html=True)
 
-st.markdown("---") 
+st.markdown("---")
 
 # --- 2. BARRA DE CONTROLES HORIZONTAL ---
 col_nav_home, col_paciente, col_id, col_novo, col_hist, col_tema = st.columns([1, 3, 2, 1.5, 1.5, 1])
